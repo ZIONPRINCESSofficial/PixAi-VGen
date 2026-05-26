@@ -245,14 +245,44 @@ function Generate() {
         const seed = Math.floor(Math.random() * 999999);
         const rawUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true&model=flux`;
         
-        // Use CORS proxy to display image
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
-        clearInterval(interval);
-        setSteps(100);
-        setTimeout(() => {
+        // Try multiple models to avoid rate limiting
+        const models = ["turbo", "flux", "flux-realism"];
+        const randomModel = models[Math.floor(Math.random() * models.length)];
+        const finalUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true&model=${randomModel}&nofeed=true`;
+        
+        // Use image element with onLoad to verify image loaded
+        const testImg = new Image();
+        testImg.crossOrigin = "anonymous";
+        testImg.onload = () => {
+          // Create canvas to convert to base64
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = testImg.naturalWidth || w;
+            canvas.height = testImg.naturalHeight || h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(testImg, 0, 0);
+            const base64 = canvas.toDataURL("image/jpeg", 0.95);
+            clearInterval(interval);
+            setSteps(100);
+            setGenerating(false);
+            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: base64, rawUrl: finalUrl, type: mode, isVideo: false });
+          } catch(e) {
+            // Canvas tainted - use direct URL
+            clearInterval(interval);
+            setSteps(100);
+            setGenerating(false);
+            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: finalUrl, rawUrl: finalUrl, type: mode, isVideo: false });
+          }
+        };
+        testImg.onerror = () => {
+          // Fallback to next model
+          const fallbackUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=${w}&height=${h}&seed=${Math.floor(Math.random()*999999)}&nologo=true&model=turbo`;
+          clearInterval(interval);
+          setSteps(100);
           setGenerating(false);
-          setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: proxyUrl, rawUrl, type: mode, isVideo: false });
-        }, 500);
+          setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: fallbackUrl, rawUrl: fallbackUrl, type: mode, isVideo: false });
+        };
+        testImg.src = finalUrl;
 
       } else {
         // For video modes — use image as video preview with motion effect
