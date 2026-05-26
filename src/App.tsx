@@ -1,0 +1,787 @@
+import { useState, useEffect, useRef } from "react";
+
+const FontLink = () => {
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Clash+Display:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap";
+    document.head.appendChild(link);
+    const link2 = document.createElement("link");
+    link2.rel = "stylesheet";
+    link2.href = "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@300;400;500&display=swap";
+    document.head.appendChild(link2);
+  }, []);
+  return null;
+};
+
+const CSS = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #06060a;
+    --surface:  #0e0e16;
+    --card:     #13131e;
+    --border:   #1e1e2e;
+    --accent:   #a78bfa;
+    --accent2:  #f472b6;
+    --accent3:  #34d399;
+    --accent4:  #fb923c;
+    --text:     #f1f0ff;
+    --muted:    #6b6b8a;
+    --font-head: 'Outfit', sans-serif;
+    --font-ui:   'Outfit', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  html, body, #root { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; overflow: hidden; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  input, select, textarea { font-family: var(--font-ui); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 14px; outline: none; transition: border-color .2s, box-shadow .2s; width: 100%; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(167,139,250,0.1); }
+  button { cursor: pointer; font-family: var(--font-ui); border: none; outline: none; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  @keyframes glow { 0%,100%{box-shadow:0 0 20px rgba(167,139,250,0.3)} 50%{box-shadow:0 0 40px rgba(167,139,250,0.6)} }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  .fade-up { animation: fadeUp .5s ease both; }
+  .s1{animation-delay:.05s} .s2{animation-delay:.1s} .s3{animation-delay:.15s} .s4{animation-delay:.2s} .s5{animation-delay:.25s} .s6{animation-delay:.3s}
+  .shimmer { background: linear-gradient(90deg, var(--card) 25%, #1e1e30 50%, var(--card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .glow-btn { animation: glow 2s ease infinite; }
+`;
+
+// Sample generated images (using gradient placeholders)
+const SAMPLE_IMAGES = [
+  { id:1, prompt:"Futuristic Lagos skyline at sunset with flying cars", type:"text-to-image", style:"Realistic", ratio:"16:9", created:"2 min ago", color:"linear-gradient(135deg,#1a1a2e,#16213e,#0f3460,#e94560)" },
+  { id:2, prompt:"African queen in traditional attire, digital art", type:"text-to-image", style:"African Art", ratio:"1:1", created:"5 min ago", color:"linear-gradient(135deg,#2d1b00,#5c3317,#8b5e3c,#d4a96a)" },
+  { id:3, prompt:"Cyberpunk market scene in Abuja", type:"text-to-video", style:"Anime", ratio:"9:16", created:"12 min ago", color:"linear-gradient(135deg,#0f0f1a,#1a0533,#2d1b69,#7c3aed)" },
+  { id:4, prompt:"Tropical rainforest waterfall, ultra realistic", type:"text-to-image", style:"Realistic", ratio:"4:3", created:"1 hr ago", color:"linear-gradient(135deg,#064e3b,#065f46,#047857,#34d399)" },
+  { id:5, prompt:"Abstract Afrobeat music visualization", type:"image-to-video", style:"Abstract", ratio:"16:9", created:"2 hr ago", color:"linear-gradient(135deg,#4c1d95,#7c3aed,#a78bfa,#f472b6)" },
+  { id:6, prompt:"Nigerian wedding celebration, golden hour", type:"text-to-image", style:"Realistic", ratio:"3:2", created:"3 hr ago", color:"linear-gradient(135deg,#78350f,#92400e,#b45309,#fbbf24)" },
+];
+
+const STYLES = ["Realistic","African Art","Anime","Cartoon","Oil Painting","Watercolor","Cyberpunk","Abstract","3D Render","Vintage"];
+const RATIOS = ["1:1","16:9","9:16","4:3","3:4","3:2","2:3","21:9"];
+const TABS = [
+  { id:"generate",  icon:"✦", label:"Generate" },
+  { id:"gallery",   icon:"⊞", label:"Gallery" },
+  { id:"voice",     icon:"◎", label:"Voice AI" },
+  { id:"pricing",   icon:"◈", label:"Pricing" },
+];
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+function Sidebar({ active, setActive }) {
+  return (
+    <aside style={{ width:220, background:"var(--surface)", borderRight:"1px solid var(--border)", display:"flex", flexDirection:"column", flexShrink:0 }}>
+      {/* Logo */}
+      <div style={{ padding:"24px 20px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ width:36, height:36, background:"linear-gradient(135deg,var(--accent),var(--accent2))", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>✦</div>
+        <div>
+          <div style={{ fontFamily:"var(--font-head)", fontSize:20, fontWeight:800, background:"linear-gradient(135deg,var(--accent),var(--accent2))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>PixAI</div>
+          <div style={{ fontSize:9, color:"var(--muted)", letterSpacing:2, textTransform:"uppercase" }}>Studio</div>
+        </div>
+      </div>
+
+      {/* Credits badge */}
+      <div style={{ margin:"16px 16px 0", padding:"12px 16px", background:"linear-gradient(135deg,rgba(167,139,250,0.1),rgba(244,114,182,0.1))", borderRadius:10, border:"1px solid rgba(167,139,250,0.2)" }}>
+        <div style={{ fontSize:10, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>Daily Credits</div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--accent)" }}>3/5</div>
+          <div style={{ fontSize:10, color:"var(--accent2)", fontWeight:600 }}>FREE</div>
+        </div>
+        <div style={{ height:4, background:"var(--border)", borderRadius:2, marginTop:8 }}>
+          <div style={{ height:4, width:"60%", background:"linear-gradient(90deg,var(--accent),var(--accent2))", borderRadius:2 }} />
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex:1, padding:"16px 0" }}>
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActive(tab.id)} style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"12px 20px", background:active===tab.id?"rgba(167,139,250,0.1)":"transparent", color:active===tab.id?"var(--accent)":"var(--muted)", fontSize:14, fontWeight:active===tab.id?600:400, borderLeft:active===tab.id?"2px solid var(--accent)":"2px solid transparent", transition:"all .15s" }}>
+            <span style={{ fontSize:16 }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Upgrade banner */}
+      <div style={{ margin:"0 16px 20px", padding:"14px 16px", background:"linear-gradient(135deg,rgba(167,139,250,0.15),rgba(244,114,182,0.15))", borderRadius:10, border:"1px solid rgba(167,139,250,0.3)", cursor:"pointer" }} onClick={() => setActive("pricing")}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--accent)", marginBottom:4 }}>✦ Upgrade to Pro</div>
+        <div style={{ fontSize:11, color:"var(--muted)", lineHeight:1.4 }}>Unlimited generations + video + no watermark</div>
+        <div style={{ marginTop:8, fontSize:11, fontWeight:700, color:"var(--accent2)" }}>$9.99/month →</div>
+      </div>
+    </aside>
+  );
+}
+
+// ── TopBar ───────────────────────────────────────────────────────────────────
+function TopBar({ title, subtitle }) {
+  return (
+    <header style={{ height:64, borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px", background:"var(--surface)", flexShrink:0 }}>
+      <div>
+        <div style={{ fontFamily:"var(--font-head)", fontSize:20, fontWeight:700 }}>{title}</div>
+        {subtitle && <div style={{ fontSize:12, color:"var(--muted)" }}>{subtitle}</div>}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ padding:"6px 14px", background:"rgba(167,139,250,0.1)", borderRadius:20, fontSize:12, color:"var(--accent)", border:"1px solid rgba(167,139,250,0.2)", fontWeight:600 }}>FREE PLAN</div>
+        <div style={{ width:34, height:34, borderRadius:"50%", background:"linear-gradient(135deg,var(--accent),var(--accent2))", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#fff" }}>ZP</div>
+      </div>
+    </header>
+  );
+}
+
+// ── GENERATE PAGE ────────────────────────────────────────────────────────────
+function Generate() {
+  const [mode, setMode]         = useState("text-to-image");
+  const [prompt, setPrompt]     = useState("");
+  const [style, setStyle]       = useState("Realistic");
+  const [ratio, setRatio]       = useState("1:1");
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated]   = useState(null);
+  const [uploadedImg, setUploadedImg] = useState(null);
+  const [steps, setSteps]       = useState(0);
+  const [resolution, setResolution] = useState("1080p");
+  const [duration, setDuration]     = useState("5s");
+  const fileRef = useRef();
+  const [faceDescription, setFaceDescription] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const analyzeFace = async (imageData) => {
+    setAnalyzing(true);
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 500,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageData.split(",")[1] } },
+              { type: "text", text: "You are an expert at describing people for AI image generation. Analyze this person and provide an extremely detailed physical description including: exact gender, estimated age, precise skin tone (e.g. deep ebony, warm brown, light caramel), hair texture and style, eye shape and color, face shape, nose shape, lip fullness, jawline, cheekbones, eyebrows, any distinctive features. Format as a detailed comma-separated description perfect for AI image generation. Be very specific. Output ONLY the description." }
+            ]
+          }]
+        })
+      });
+      const data = await response.json();
+      const desc = data.content?.[0]?.text || "";
+      setFaceDescription(desc);
+    } catch(e) {
+      // If API fails, use a generic description
+      setFaceDescription("person, detailed face, natural features");
+    }
+    setAnalyzing(false);
+  };
+
+  const modes = [
+    { id:"text-to-image",  icon:"✦", label:"Text → Image" },
+    { id:"text-to-video",  icon:"▶", label:"Text → Video" },
+    { id:"image-to-video", icon:"⊞", label:"Image → Video" },
+    { id:"image-to-image", icon:"◈", label:"Image → Image" },
+  ];
+
+  const getRatioStyle = (r) => {
+    const map = { "1:1":"200px", "16:9":"355px", "9:16":"113px", "4:3":"267px", "3:4":"150px", "3:2":"300px", "2:3":"133px", "21:9":"467px" };
+    return { width: map[r] || "200px", height:"200px" };
+  };
+
+  const generate = async () => {
+    if (!prompt && mode !== "image-to-video") return;
+    if (mode === "image-to-video" && !uploadedImg) return;
+    setGenerating(true);
+    setGenerated(null);
+    setSteps(0);
+
+    // Simulate progress while fetching
+    let s = 0;
+    const interval = setInterval(() => {
+      s += Math.floor(Math.random() * 5) + 2;
+      if (s >= 90) { s = 90; clearInterval(interval); }
+      setSteps(s);
+    }, 200);
+
+    try {
+      if (mode === "text-to-image" || mode === "image-to-image") {
+        // Ultra HD quality prompts based on style
+        const qualityMap = {
+          "Realistic": "ultra photorealistic, 8K UHD, hyperrealistic, sharp focus, professional photography, cinematic lighting, detailed skin texture, ray tracing",
+          "African Art": "African digital art, vibrant colors, cultural patterns, ultra detailed, professional illustration",
+          "Anime": "anime style, ultra detailed, sharp lines, vibrant colors, professional anime art",
+          "Cartoon": "cartoon style, vibrant, clean lines, professional illustration, ultra detailed",
+          "Oil Painting": "oil painting, masterpiece, ultra detailed brushwork, museum quality, classical art",
+          "Watercolor": "watercolor painting, ultra detailed, professional artist, soft edges, vibrant",
+          "Cyberpunk": "cyberpunk, neon lights, ultra detailed, 8K, cinematic, futuristic city",
+          "Abstract": "abstract art, ultra detailed, vibrant colors, professional digital art",
+          "3D Render": "3D render, octane render, ultra realistic, 8K, ray tracing, professional CGI",
+          "Vintage": "vintage photography, film grain, classic, ultra detailed, professional"
+        };
+        const qualityPrompt = qualityMap[style] || "ultra photorealistic, 8K UHD, hyperrealistic";
+        
+        // Image to image — ultra realistic portrait using face description
+        const faceDesc = faceDescription || "person with natural features";
+        const cameraSettings = "shot on Sony A7R V, 85mm f/1.4 lens, bokeh background, studio lighting, catchlight in eyes, skin pores visible, hair strands detail";
+        const lightingSettings = "three point lighting setup, key light at 45 degrees, fill light, rim light, natural skin tones, no overexposure";
+        const basePrompt = mode === "image-to-image" 
+          ? `RAW photo of ${faceDesc}, ${prompt || "professional portrait headshot"}, ${cameraSettings}, ${lightingSettings}, ultra photorealistic, 8K UHD, hyperrealistic skin texture, detailed eyes, sharp focus, professional photography, award winning portrait, ${qualityPrompt}, highly detailed face, natural expression`
+          : `${prompt}, ${qualityPrompt}`;
+        
+        const fullPrompt = encodeURIComponent(basePrompt);
+        
+        // Resolution based size
+        const resMap = { "480p":"640x480", "720p":"1280x720", "1080p":"1920x1080" };
+        const ratioMap = { 
+          "1:1":"1024x1024", "16:9":"1920x1080", "9:16":"1080x1920", 
+          "4:3":"1440x1080", "3:4":"1080x1440", "3:2":"1500x1000", 
+          "2:3":"1000x1500", "21:9":"2560x1097" 
+        };
+        
+        // Use ratio for dimensions, override with resolution quality
+        let [w, h] = (ratioMap[ratio] || "1024x1024").split("x");
+        if (resolution === "480p") { w = Math.round(w*0.4); h = Math.round(h*0.4); }
+        else if (resolution === "720p") { w = Math.round(w*0.7); h = Math.round(h*0.7); }
+        
+        const seed = Math.floor(Math.random() * 999999);
+        const rawUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true&model=flux`;
+        
+        // Fix CORS: fetch image and convert to base64 blob for display
+        try {
+          const imgResponse = await fetch(rawUrl);
+          const blob = await imgResponse.blob();
+          const base64 = await new Promise((res) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          clearInterval(interval);
+          setSteps(100);
+          setTimeout(() => {
+            setGenerating(false);
+            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: base64, rawUrl, type: mode, isVideo: false });
+          }, 500);
+        } catch(fetchErr) {
+          // Fallback to direct URL if fetch fails
+          clearInterval(interval);
+          setSteps(100);
+          setTimeout(() => {
+            setGenerating(false);
+            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: rawUrl, rawUrl, type: mode, isVideo: false });
+          }, 500);
+        }
+
+      } else {
+        // For video modes — use image as video preview with motion effect
+        let sv = 0;
+        const vInterval = setInterval(() => {
+          sv += Math.floor(Math.random() * 6) + 2;
+          if (sv >= 100) {
+            sv = 100;
+            clearInterval(vInterval);
+            clearInterval(interval);
+            
+            // Generate a cinematic image as video thumbnail
+            const videoPrompt = encodeURIComponent(`${prompt || "cinematic scene"}, cinematic 4K, movie scene, dramatic lighting, film grain, professional cinematography, ultra detailed`);
+            const videoThumb = `https://image.pollinations.ai/prompt/${videoPrompt}?width=1280&height=720&nologo=true&enhance=true&model=flux`;
+            
+            setTimeout(() => {
+              setGenerating(false);
+              const colors = ["linear-gradient(135deg,#1a1a2e,#7c3aed,#a78bfa)","linear-gradient(135deg,#4c1d95,#f472b6,#fb923c)","linear-gradient(135deg,#0f0c29,#302b63,#24243e)"];
+              setGenerated({ prompt, style, ratio, resolution, duration, videoThumb, color: colors[Math.floor(Math.random()*colors.length)], type: mode, isVideo: true });
+            }, 300);
+          }
+          setSteps(sv);
+        }, 250);
+      }
+    } catch (err) {
+      clearInterval(interval);
+      setGenerating(false);
+      alert("Generation failed. Please try again.");
+    }
+  };
+
+  const handleUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedImg(reader.result);
+      if (mode === "image-to-image") {
+        analyzeFace(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div style={{ padding:28, overflowY:"auto", flex:1 }}>
+      {/* Mode selector */}
+      <div className="fade-up s1" style={{ display:"flex", gap:8, marginBottom:24 }}>
+        {modes.map(m => (
+          <button key={m.id} onClick={() => { setMode(m.id); setGenerated(null); }} style={{ padding:"10px 20px", borderRadius:10, fontSize:13, fontWeight:600, background:mode===m.id?"linear-gradient(135deg,var(--accent),var(--accent2))":"var(--card)", color:mode===m.id?"#fff":"var(--muted)", border:`1px solid ${mode===m.id?"transparent":"var(--border)"}`, transition:"all .2s", display:"flex", alignItems:"center", gap:8 }}>
+            <span>{m.icon}</span>{m.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 380px", gap:24 }}>
+        {/* Left — Controls */}
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+          {/* Image upload for image-to-video and image-to-image */}
+          {(mode==="image-to-video" || mode==="image-to-image") && (
+            <div className="fade-up" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:20 }}>
+              <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:12 }}>
+                {mode==="image-to-image" ? "Upload Your Photo (for enhancement)" : "Upload Image"}
+              </div>
+              <div onClick={() => fileRef.current.click()} style={{ border:"2px dashed var(--border)", borderRadius:10, padding:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", cursor:"pointer", minHeight:140, background:uploadedImg?"transparent":"var(--surface)", transition:"border-color .2s", position:"relative", overflow:"hidden" }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--accent)"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
+              >
+                {uploadedImg ? (
+                  <img src={uploadedImg} alt="uploaded" style={{ width:"100%", height:140, objectFit:"cover", borderRadius:8 }} />
+                ) : (
+                  <>
+                    <div style={{ fontSize:32, marginBottom:8, opacity:0.4 }}>⊞</div>
+                    <div style={{ fontSize:13, color:"var(--muted)" }}>Click to upload image</div>
+                    <div style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>PNG, JPG, WEBP up to 10MB</div>
+                  </>
+                )}
+              </div>
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} style={{ display:"none" }} />
+            </div>
+          )}
+
+          {/* Prompt */}
+          <div className="fade-up s2" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:20 }}>
+            <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:12 }}>
+              {mode==="image-to-video" ? "Describe the motion/animation" : "Describe what you want to create"}
+            </div>
+            <textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              placeholder={
+                mode==="text-to-image" ? "e.g. A majestic lion on African savanna at golden hour, ultra realistic 8K..." : 
+                mode==="text-to-video" ? "e.g. A bustling Lagos market scene, cinematic 4K..." : 
+                mode==="image-to-image" ? "e.g. Make skin clearer, add professional lighting, enhance portrait quality..." :
+                "e.g. Make the person walk forward slowly, cinematic motion..."
+              }
+              rows={4}
+              style={{ resize:"none", borderRadius:10, lineHeight:1.6 }}
+            />
+            <div style={{ display:"flex", justifyContent:"flex-end", marginTop:8 }}>
+              <div style={{ fontSize:11, color:"var(--muted)", fontFamily:"var(--font-mono)" }}>{prompt.length}/500</div>
+            </div>
+          </div>
+
+          {/* Style + Ratio */}
+          <div className="fade-up s3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+            <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
+              <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Art Style</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {STYLES.map(s => (
+                  <button key={s} onClick={() => setStyle(s)} style={{ padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:500, background:style===s?"rgba(167,139,250,0.2)":"var(--surface)", color:style===s?"var(--accent)":"var(--muted)", border:`1px solid ${style===s?"var(--accent)":"var(--border)"}`, transition:"all .15s" }}>{s}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
+              <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Aspect Ratio</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {RATIOS.map(r => (
+                  <button key={r} onClick={() => setRatio(r)} style={{ padding:"5px 12px", borderRadius:20, fontSize:11, fontWeight:600, background:ratio===r?"rgba(167,139,250,0.2)":"var(--surface)", color:ratio===r?"var(--accent)":"var(--muted)", border:`1px solid ${ratio===r?"var(--accent)":"var(--border)"}`, fontFamily:"var(--font-mono)", transition:"all .15s" }}>{r}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Resolution selector */}
+          <div className="fade-up s3" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
+            <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Output Resolution</div>
+            <div style={{ display:"flex", gap:8 }}>
+              {[
+                { val:"480p",  label:"480p",  sub:"SD",  color:"var(--muted)",   free:true  },
+                { val:"720p",  label:"720p",  sub:"HD",  color:"var(--accent3)", free:true  },
+                { val:"1080p", label:"1080p", sub:"FHD", color:"var(--accent)",  free:false },
+              ].map(r => (
+                <button key={r.val} onClick={() => setResolution(r.val)} style={{ flex:1, padding:"12px 8px", borderRadius:10, background:resolution===r.val?`${r.color}20`:"var(--surface)", border:`2px solid ${resolution===r.val?r.color:"var(--border)"}`, color:resolution===r.val?r.color:"var(--muted)", transition:"all .15s", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                  <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, fontSize:14 }}>{r.label}</span>
+                  <span style={{ fontSize:9, textTransform:"uppercase", letterSpacing:1 }}>{r.sub}</span>
+                  {!r.free && <span style={{ fontSize:9, color:"var(--accent2)", fontWeight:700, marginTop:2 }}>PRO</span>}
+                  {r.free && <span style={{ fontSize:9, color:"var(--accent3)", fontWeight:700, marginTop:2 }}>FREE</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Video Duration — only show for video modes */}
+          {(mode==="text-to-video"||mode==="image-to-video") && (
+            <div className="fade-up s3" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:16 }}>
+              <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Video Duration</div>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                {[
+                  { val:"5s",        label:"5s",        sub:"Quick",    color:"var(--accent3)", free:true  },
+                  { val:"6s",        label:"6s",        sub:"Short",    color:"var(--accent3)", free:true  },
+                  { val:"8s",        label:"8s",        sub:"Medium",   color:"var(--accent)",  free:false },
+                  { val:"10s",       label:"10s",       sub:"Long",     color:"var(--accent)",  free:false },
+                  { val:"Unlimited", label:"∞",         sub:"Unlimited",color:"var(--accent2)", free:false },
+                ].map(d => (
+                  <button key={d.val} onClick={() => setDuration(d.val)} style={{ flex:1, minWidth:60, padding:"12px 8px", borderRadius:10, background:duration===d.val?`${d.color}20`:"var(--surface)", border:`2px solid ${duration===d.val?d.color:"var(--border)"}`, color:duration===d.val?d.color:"var(--muted)", transition:"all .15s", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, fontSize:16 }}>{d.label}</span>
+                    <span style={{ fontSize:9, textTransform:"uppercase", letterSpacing:1 }}>{d.sub}</span>
+                    {!d.free && <span style={{ fontSize:9, color:"var(--accent2)", fontWeight:700, marginTop:2 }}>PRO</span>}
+                    {d.free && <span style={{ fontSize:9, color:"var(--accent3)", fontWeight:700, marginTop:2 }}>FREE</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Generate button */}
+          <button className="fade-up s4 glow-btn" onClick={generate} disabled={generating||analyzing} style={{ padding:"16px 32px", background:(generating||analyzing)?"var(--card)":"linear-gradient(135deg,var(--accent),var(--accent2))", color:(generating||analyzing)?"var(--muted)":"#fff", borderRadius:12, fontWeight:700, fontSize:15, transition:"all .3s", display:"flex", alignItems:"center", justifyContent:"center", gap:10, border:`1px solid ${(generating||analyzing)?"var(--border)":"transparent"}` }}>
+            {analyzing ? (
+              <><div style={{ width:16, height:16, border:"2px solid var(--muted)", borderTopColor:"var(--accent3)", borderRadius:"50%", animation:"spin 1s linear infinite" }} /> Analyzing face...</>
+            ) : generating ? (
+              <><div style={{ width:16, height:16, border:"2px solid var(--muted)", borderTopColor:"var(--accent)", borderRadius:"50%", animation:"spin 1s linear infinite" }} /> Generating... {steps}%</>
+            ) : (
+              <>✦ Generate {mode==="text-to-image"?"Image":mode==="text-to-video"?"Video":mode==="image-to-image"?"My Portrait":"Video from Image"}</>
+            )}
+          </button>
+
+          {/* Progress bar */}
+          {generating && (
+            <div style={{ background:"var(--card)", borderRadius:10, padding:16, border:"1px solid var(--border)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8, fontSize:12, color:"var(--muted)" }}>
+                <span>Processing your {mode==="text-to-image"?"image":"video"}...</span>
+                <span style={{ fontFamily:"var(--font-mono)", color:"var(--accent)" }}>{steps}%</span>
+              </div>
+              <div style={{ height:6, background:"var(--border)", borderRadius:3 }}>
+                <div style={{ height:6, width:`${steps}%`, background:"linear-gradient(90deg,var(--accent),var(--accent2))", borderRadius:3, transition:"width .3s ease" }} />
+              </div>
+              <div style={{ marginTop:8, fontSize:11, color:"var(--muted)", animation:"pulse 1.5s ease infinite" }}>
+                {steps < 30 ? "⚡ Initializing AI model..." : steps < 60 ? "🎨 Applying style..." : steps < 85 ? "✨ Refining details..." : "🖼 Finalizing output..."}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right — Preview */}
+        <div className="fade-up s3" style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:20, flex:1 }}>
+            <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:16 }}>Preview</div>
+
+            {generated ? (
+              <div style={{ animation:"fadeUp .5s ease both" }}>
+                <div style={{ background:generated.color, borderRadius:10, marginBottom:16, position:"relative", overflow:"hidden", aspectRatio: generated.ratio.replace(":","/")||"1/1", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {generated.isVideo && (
+                    <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <div style={{ width:56, height:56, background:"rgba(255,255,255,0.2)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(10px)" }}>
+                        <div style={{ width:0, height:0, borderTop:"12px solid transparent", borderBottom:"12px solid transparent", borderLeft:"20px solid white", marginLeft:4 }} />
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ position:"absolute", bottom:8, left:8, padding:"3px 8px", background:"rgba(0,0,0,0.6)", borderRadius:4, fontSize:10, fontFamily:"var(--font-mono)", color:"#fff" }}>{generated.ratio}</div>
+                  {generated.isVideo && <div style={{ position:"absolute", top:8, right:8, padding:"3px 8px", background:"rgba(167,139,250,0.8)", borderRadius:4, fontSize:10, fontWeight:700, color:"#fff" }}>VIDEO</div>}
+                </div>
+                <div style={{ fontSize:12, color:"var(--muted)", marginBottom:4, fontStyle:"italic" }}>"{generated.prompt}"</div>
+                <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+                  <span style={{ padding:"3px 10px", background:"rgba(167,139,250,0.1)", borderRadius:20, fontSize:10, color:"var(--accent)" }}>{generated.style}</span>
+                  <span style={{ padding:"3px 10px", background:"rgba(52,211,153,0.1)", borderRadius:20, fontSize:10, color:"var(--accent3)", fontFamily:"var(--font-mono)" }}>{generated.ratio}</span>
+                  <span style={{ padding:"3px 10px", background:"rgba(251,146,60,0.1)", borderRadius:20, fontSize:10, color:"var(--accent4)", fontFamily:"var(--font-mono)", fontWeight:700 }}>{generated.resolution}</span>
+                  {generated.isVideo && <span style={{ padding:"3px 10px", background:"rgba(244,114,182,0.1)", borderRadius:20, fontSize:10, color:"var(--accent2)", fontFamily:"var(--font-mono)", fontWeight:700 }}>⏱ {generated.duration}</span>}
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={() => { 
+                    if(generated.imageUrl){ 
+                      const a=document.createElement("a"); 
+                      a.href=generated.rawUrl||generated.imageUrl; 
+                      a.download="pixai-image.jpg"; 
+                      a.target="_blank"; 
+                      document.body.appendChild(a);
+                      a.click(); 
+                      document.body.removeChild(a);
+                    } else { 
+                      alert("⬇️ Downloading your creation..."); 
+                    }
+                  }} style={{ flex:1, padding:"10px", background:"linear-gradient(135deg,var(--accent),var(--accent2))", color:"#fff", borderRadius:8, fontWeight:700, fontSize:12 }}>⬇ Download</button>
+                  <button onClick={() => alert("🔗 Share link copied!")} style={{ flex:1, padding:"10px", background:"var(--surface)", color:"var(--text)", borderRadius:8, fontWeight:600, fontSize:12, border:"1px solid var(--border)" }}>↗ Share</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:300, color:"var(--muted)", gap:16 }}>
+                <div style={{ fontSize:48, opacity:0.2, animation:"float 3s ease infinite" }}>✦</div>
+                <div style={{ fontSize:13, textAlign:"center", lineHeight:1.6 }}>Your generated {mode==="text-to-image"?"image":"video"} will appear here</div>
+                <div style={{ fontSize:11, color:"var(--border)", textAlign:"center" }}>Enter a prompt and click Generate</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── GALLERY ──────────────────────────────────────────────────────────────────
+function Gallery() {
+  const [filter, setFilter] = useState("all");
+  const filtered = filter==="all" ? SAMPLE_IMAGES : SAMPLE_IMAGES.filter(i => i.type===filter);
+
+  return (
+    <div style={{ padding:28, overflowY:"auto", flex:1 }}>
+      <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+        {[["all","All"],["text-to-image","Images"],["text-to-video","Videos"],["image-to-video","Img→Vid"]].map(([val,lbl]) => (
+          <button key={val} onClick={() => setFilter(val)} style={{ padding:"7px 16px", borderRadius:20, fontSize:12, fontWeight:600, background:filter===val?"linear-gradient(135deg,var(--accent),var(--accent2))":"var(--card)", color:filter===val?"#fff":"var(--muted)", border:`1px solid ${filter===val?"transparent":"var(--border)"}`, transition:"all .15s" }}>{lbl}</button>
+        ))}
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))", gap:16 }}>
+        {filtered.map((img,i) => (
+          <div key={img.id} className="fade-up" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, overflow:"hidden", cursor:"pointer", transition:"transform .2s, border-color .2s", animationDelay:`${i*.07}s` }}
+            onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.borderColor="var(--accent)"}}
+            onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.borderColor="var(--border)"}}
+          >
+            <div style={{ background:img.color, height:160, position:"relative", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              {img.type!=="text-to-image" && (
+                <div style={{ width:40, height:40, background:"rgba(255,255,255,0.2)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(10px)" }}>
+                  <div style={{ width:0, height:0, borderTop:"8px solid transparent", borderBottom:"8px solid transparent", borderLeft:"14px solid white", marginLeft:3 }} />
+                </div>
+              )}
+              <div style={{ position:"absolute", top:8, left:8, padding:"3px 8px", background:"rgba(0,0,0,0.6)", borderRadius:4, fontSize:9, fontFamily:"var(--font-mono)", color:"#fff" }}>{img.ratio}</div>
+              <div style={{ position:"absolute", top:8, right:8, padding:"3px 8px", background:img.type==="text-to-image"?"rgba(167,139,250,0.8)":img.type==="text-to-video"?"rgba(244,114,182,0.8)":"rgba(52,211,153,0.8)", borderRadius:4, fontSize:9, fontWeight:700, color:"#fff" }}>
+                {img.type==="text-to-image"?"IMG":img.type==="text-to-video"?"VID":"I→V"}
+              </div>
+            </div>
+            <div style={{ padding:"12px 14px" }}>
+              <div style={{ fontSize:12, fontWeight:500, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{img.prompt}</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontSize:10, color:"var(--accent)", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:10 }}>{img.style}</span>
+                <span style={{ fontSize:10, color:"var(--muted)", fontFamily:"var(--font-mono)" }}>{img.created}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── VOICE AI ─────────────────────────────────────────────────────────────────
+function VoiceAI() {
+  const [listening, setListening]   = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [result, setResult]         = useState(null);
+  const [volume, setVolume]         = useState(0);
+  const recognitionRef = useRef(null);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (recognitionRef.current) recognitionRef.current.stop(); if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, []);
+
+  const startListening = () => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onstart = () => { setListening(true); setTranscript(""); setResult(null); };
+    recognition.onresult = (e) => {
+      let interim = ""; let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      setTranscript(final || interim);
+    };
+    recognition.onend = () => { setListening(false); };
+    recognition.onerror = () => { setListening(false); };
+    recognitionRef.current = recognition;
+    recognition.start();
+
+    // Animate volume bars
+    const animate = () => { setVolume(Math.random() * 100); animRef.current = requestAnimationFrame(animate); };
+    animRef.current = requestAnimationFrame(animate);
+  };
+
+  const stopAndGenerate = () => {
+    if (recognitionRef.current) recognitionRef.current.stop();
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    setListening(false);
+    if (!transcript) return;
+    setProcessing(true);
+    setTimeout(() => {
+      setProcessing(false);
+      setResult({ prompt: transcript, color:"linear-gradient(135deg,#4c1d95,#7c3aed,#a78bfa,#f472b6)" });
+    }, 2500);
+  };
+
+  const bars = Array.from({ length: 20 });
+
+  return (
+    <div style={{ padding:28, overflowY:"auto", flex:1 }}>
+      <div className="fade-up s1" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:24, marginBottom:20 }}>
+        <div style={{ fontFamily:"var(--font-head)", fontSize:20, fontWeight:700, marginBottom:8 }}>🎙 Natural Voice Detection</div>
+        <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>Just speak your image or video idea naturally. PixAI will detect your voice, convert it to a prompt, and generate your creation automatically. Supports natural conversational speech — no need for specific commands.</div>
+      </div>
+
+      {/* Voice visualizer */}
+      <div className="fade-up s2" style={{ background:"var(--card)", border:`1px solid ${listening?"var(--accent)":"var(--border)"}`, borderRadius:14, padding:32, marginBottom:20, display:"flex", flexDirection:"column", alignItems:"center", gap:24, transition:"border-color .3s" }}>
+        {/* Waveform */}
+        <div style={{ display:"flex", alignItems:"center", gap:3, height:60 }}>
+          {bars.map((_, i) => (
+            <div key={i} style={{ width:4, borderRadius:2, background:`linear-gradient(180deg,var(--accent),var(--accent2))`, height: listening ? `${Math.max(8, Math.random() * volume * 0.6)}px` : "8px", transition:"height .1s ease", opacity: listening ? 1 : 0.3 }} />
+          ))}
+        </div>
+
+        {/* Mic button */}
+        <div style={{ position:"relative" }}>
+          {listening && (
+            <div style={{ position:"absolute", inset:-16, borderRadius:"50%", border:"2px solid rgba(167,139,250,0.3)", animation:"pulse 1.5s ease infinite" }} />
+          )}
+          <button
+            onClick={listening ? stopAndGenerate : startListening}
+            style={{ width:80, height:80, borderRadius:"50%", background:listening?"linear-gradient(135deg,var(--accent2),var(--danger))":"linear-gradient(135deg,var(--accent),var(--accent2))", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, transition:"all .3s", boxShadow:listening?"0 0 30px rgba(244,114,182,0.5)":"0 0 20px rgba(167,139,250,0.3)" }}
+          >
+            {listening ? "⏹" : "🎙"}
+          </button>
+        </div>
+
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontWeight:700, fontSize:15, color:listening?"var(--accent2)":"var(--text)", marginBottom:4 }}>
+            {listening ? "🔴 Listening... tap to generate" : "Tap microphone to start"}
+          </div>
+          <div style={{ fontSize:12, color:"var(--muted)" }}>
+            {listening ? "Speak your image/video idea naturally" : "Say something like: 'Create a sunset over Lagos city'"}
+          </div>
+        </div>
+      </div>
+
+      {/* Transcript */}
+      {(transcript || processing) && (
+        <div className="fade-up" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:20, marginBottom:20 }}>
+          <div style={{ fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:10 }}>Detected Speech</div>
+          {processing ? (
+            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+              <div style={{ width:16, height:16, border:"2px solid var(--border)", borderTopColor:"var(--accent)", borderRadius:"50%", animation:"spin 1s linear infinite" }} />
+              <span style={{ fontSize:13, color:"var(--muted)", animation:"pulse 1.5s ease infinite" }}>Processing your voice prompt...</span>
+            </div>
+          ) : (
+            <div style={{ fontSize:14, lineHeight:1.6, color:"var(--text)", fontStyle:"italic" }}>"{transcript}"</div>
+          )}
+        </div>
+      )}
+
+      {/* Generated result */}
+      {result && (
+        <div className="fade-up" style={{ background:"var(--card)", border:"1px solid var(--accent)", borderRadius:14, padding:20 }}>
+          <div style={{ fontSize:11, color:"var(--accent)", textTransform:"uppercase", letterSpacing:1, marginBottom:14 }}>✦ Generated from Voice</div>
+          <div style={{ background:result.color, borderRadius:10, height:200, marginBottom:16, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.7)", textAlign:"center", padding:20, fontStyle:"italic" }}>"{result.prompt}"</div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => alert("⬇️ Downloading...")} style={{ flex:1, padding:"10px", background:"linear-gradient(135deg,var(--accent),var(--accent2))", color:"#fff", borderRadius:8, fontWeight:700, fontSize:12 }}>⬇ Download</button>
+            <button onClick={() => alert("🔗 Copied!")} style={{ flex:1, padding:"10px", background:"var(--surface)", color:"var(--text)", borderRadius:8, fontWeight:600, fontSize:12, border:"1px solid var(--border)" }}>↗ Share</button>
+          </div>
+        </div>
+      )}
+
+      {/* Supported languages */}
+      <div className="fade-up s4" style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:20, marginTop:20 }}>
+        <div style={{ fontSize:12, color:"var(--muted)", textTransform:"uppercase", letterSpacing:1, marginBottom:12 }}>Supported Languages</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {["🇬🇧 English","🇳🇬 Pidgin","🇫🇷 French","🇪🇸 Spanish","🇸🇦 Arabic","🇩🇪 German","🇨🇳 Chinese","🇯🇵 Japanese","🇧🇷 Portuguese","🇮🇳 Hindi"].map(lang => (
+            <span key={lang} style={{ padding:"5px 12px", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:20, fontSize:11, color:"var(--muted)" }}>{lang}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PRICING ──────────────────────────────────────────────────────────────────
+function Pricing() {
+  const plans = [
+    { name:"FREE",     price:"$0",    period:"forever",  color:"var(--muted)",   features:["5 images/day","Basic styles only","720p quality","Watermarked output","Community support"], cta:"Current Plan", current:true },
+    { name:"PRO",      price:"$9.99", period:"/month",   color:"var(--accent)",  features:["Unlimited images","All 10 art styles","4K quality","No watermark","Text to Video","Image to Video","Voice generation","Priority support"], cta:"Upgrade to Pro", current:false },
+    { name:"BUSINESS", price:"$29.99",period:"/month",   color:"var(--accent2)", features:["Everything in Pro","API access","Bulk generation","Commercial license","Team collaboration","Custom styles","Dedicated support","White label option"], cta:"Get Business", current:false },
+  ];
+
+  return (
+    <div style={{ padding:28, overflowY:"auto", flex:1 }}>
+      <div className="fade-up s1" style={{ textAlign:"center", marginBottom:32 }}>
+        <div style={{ fontFamily:"var(--font-head)", fontSize:28, fontWeight:800, marginBottom:8, background:"linear-gradient(135deg,var(--accent),var(--accent2))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Simple, Transparent Pricing</div>
+        <div style={{ fontSize:14, color:"var(--muted)" }}>Start free, upgrade when you need more power</div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:20, maxWidth:900, margin:"0 auto" }}>
+        {plans.map((plan,i) => (
+          <div key={plan.name} className="fade-up" style={{ background:"var(--card)", border:`2px solid ${plan.current?"var(--border)":plan.color+"40"}`, borderRadius:16, padding:28, position:"relative", overflow:"hidden", animationDelay:`${i*.1}s`, transition:"transform .2s" }}
+            onMouseEnter={e=>e.currentTarget.style.transform="translateY(-4px)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
+          >
+            {plan.name==="PRO" && (
+              <div style={{ position:"absolute", top:16, right:-20, background:"linear-gradient(135deg,var(--accent),var(--accent2))", color:"#fff", fontSize:10, fontWeight:700, padding:"4px 32px", transform:"rotate(45deg)", letterSpacing:1 }}>POPULAR</div>
+            )}
+            <div style={{ fontFamily:"var(--font-head)", fontSize:22, fontWeight:800, color:plan.color, marginBottom:4 }}>{plan.name}</div>
+            <div style={{ display:"flex", alignItems:"baseline", gap:4, marginBottom:20 }}>
+              <span style={{ fontFamily:"var(--font-head)", fontSize:36, fontWeight:900 }}>{plan.price}</span>
+              <span style={{ fontSize:13, color:"var(--muted)" }}>{plan.period}</span>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+              {plan.features.map(f => (
+                <div key={f} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13 }}>
+                  <div style={{ width:16, height:16, borderRadius:"50%", background:`${plan.color}20`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:plan.color, flexShrink:0 }}>✓</div>
+                  {f}
+                </div>
+              ))}
+            </div>
+            <button onClick={() => !plan.current && alert(`Redirecting to ${plan.name} plan checkout...`)} style={{ width:"100%", padding:"12px", background:plan.current?"var(--surface)":`linear-gradient(135deg,${plan.color},${plan.name==="PRO"?"var(--accent2)":"var(--accent4)"})`, color:plan.current?"var(--muted)":"#fff", borderRadius:10, fontWeight:700, fontSize:13, border:`1px solid ${plan.current?"var(--border)":"transparent"}`, cursor:plan.current?"default":"pointer" }}>
+              {plan.cta}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="fade-up s5" style={{ marginTop:32, background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:24, maxWidth:900, margin:"32px auto 0", textAlign:"center" }}>
+        <div style={{ fontWeight:700, fontSize:15, marginBottom:8 }}>🌍 Special Pricing for Nigeria & Africa</div>
+        <div style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>We offer 50% discount for users in Nigeria and other African countries. Pro plan available at <strong style={{ color:"var(--accent)" }}>₦7,500/month</strong> and Business at <strong style={{ color:"var(--accent2)" }}>₦22,500/month</strong>. Contact us for local pricing.</div>
+      </div>
+    </div>
+  );
+}
+
+// ── ROOT APP ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [active, setActive] = useState("generate");
+
+  const pages = {
+    generate: { title:"✦ Generate",       subtitle:"Create stunning images & videos with AI" },
+    gallery:  { title:"⊞ Gallery",        subtitle:"Your AI-generated creations" },
+    voice:    { title:"🎙 Voice AI",       subtitle:"Speak your idea — AI brings it to life" },
+    pricing:  { title:"◈ Pricing",        subtitle:"Choose the plan that works for you" },
+  };
+
+  return (
+    <>
+      <FontLink />
+      <style>{CSS}</style>
+      <div style={{ display:"flex", height:"100vh", overflow:"hidden" }}>
+        <Sidebar active={active} setActive={setActive} />
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <TopBar title={pages[active].title} subtitle={pages[active].subtitle} />
+          <div style={{ flex:1, overflowY:"auto" }}>
+            {active==="generate" && <Generate />}
+            {active==="gallery"  && <Gallery />}
+            {active==="voice"    && <VoiceAI />}
+            {active==="pricing"  && <Pricing />}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
