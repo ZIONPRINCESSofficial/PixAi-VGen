@@ -245,30 +245,14 @@ function Generate() {
         const seed = Math.floor(Math.random() * 999999);
         const rawUrl = `https://image.pollinations.ai/prompt/${fullPrompt}?width=${w}&height=${h}&seed=${seed}&nologo=true&enhance=true&model=flux`;
         
-        // Fix CORS: fetch image and convert to base64 blob for display
-        try {
-          const imgResponse = await fetch(rawUrl);
-          const blob = await imgResponse.blob();
-          const base64 = await new Promise((res) => {
-            const reader = new FileReader();
-            reader.onload = () => res(reader.result);
-            reader.readAsDataURL(blob);
-          });
-          clearInterval(interval);
-          setSteps(100);
-          setTimeout(() => {
-            setGenerating(false);
-            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: base64, rawUrl, type: mode, isVideo: false });
-          }, 500);
-        } catch(fetchErr) {
-          // Fallback to direct URL if fetch fails
-          clearInterval(interval);
-          setSteps(100);
-          setTimeout(() => {
-            setGenerating(false);
-            setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: rawUrl, rawUrl, type: mode, isVideo: false });
-          }, 500);
-        }
+        // Use CORS proxy to display image
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawUrl)}`;
+        clearInterval(interval);
+        setSteps(100);
+        setTimeout(() => {
+          setGenerating(false);
+          setGenerated({ prompt: basePrompt, style, ratio, resolution, duration, imageUrl: proxyUrl, rawUrl, type: mode, isVideo: false });
+        }, 500);
 
       } else {
         // For video modes — use image as video preview with motion effect
